@@ -21,10 +21,21 @@ describe("mockLatestReadings", () => {
 });
 
 describe("mockTemperatureHistory", () => {
-  it("ends at the current mockLatestReadings temperature for each sensor", () => {
-    const sensor1Last = mockTemperatureHistory.sensor1.at(-1);
-    const sensor2Last = mockTemperatureHistory.sensor2.at(-1);
-    expect(sensor1Last?.temperature).toBe(mockLatestReadings.sensor1.temperature);
-    expect(sensor2Last?.temperature).toBe(mockLatestReadings.sensor2.temperature);
+  it("covers about 90 days", () => {
+    expect(mockTemperatureHistory.length).toBe(90);
+  });
+
+  it("ends today at the current mockLatestReadings temperature for each sensor", () => {
+    const last = mockTemperatureHistory.at(-1);
+    expect(last?.date).toBe(new Date().toISOString().slice(0, 10));
+    expect(last?.sensor1).toBe(mockLatestReadings.sensor1.temperature);
+    expect(last?.sensor2).toBe(mockLatestReadings.sensor2.temperature);
+  });
+
+  it("has chronologically ordered, unique dates", () => {
+    const dates = mockTemperatureHistory.map((p) => p.date);
+    const sorted = [...dates].sort();
+    expect(dates).toEqual(sorted);
+    expect(new Set(dates).size).toBe(dates.length);
   });
 });

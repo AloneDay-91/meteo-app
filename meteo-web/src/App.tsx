@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Thermometer } from "lucide-react";
 import { SensorCard } from "@/components/SensorCard";
+import { TemperatureHistoryChart } from "@/components/TemperatureHistoryChart";
 import { getLatestReadings, getTemperatureHistory } from "@/lib/api";
 import type { LatestReadings, TemperatureHistory } from "@/types";
 
@@ -37,9 +38,12 @@ function App() {
       )}
 
       {!error && readings && history && (
-        <div className="mx-auto flex max-w-4xl flex-wrap justify-center gap-6">
-          <SensorCard reading={readings.sensor1} history={history.sensor1} />
-          <SensorCard reading={readings.sensor2} history={history.sensor2} />
+        <div className="mx-auto flex max-w-4xl flex-col gap-6">
+          <div className="flex flex-wrap justify-center gap-6">
+            <SensorCard reading={readings.sensor1} />
+            <SensorCard reading={readings.sensor2} />
+          </div>
+          <TemperatureHistoryChart history={history} />
         </div>
       )}
     </div>

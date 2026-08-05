@@ -13,12 +13,10 @@ export interface LatestReadings {
   sensor2: SensorReading;
 }
 
-export interface TemperaturePoint {
-  time: string;
-  temperature: number;
+export interface TemperatureHistoryPoint {
+  date: string;
+  sensor1: number;
+  sensor2: number;
 }
 
-export interface TemperatureHistory {
-  sensor1: TemperaturePoint[];
-  sensor2: TemperaturePoint[];
-}
+export type TemperatureHistory = TemperatureHistoryPoint[];
