@@ -1,0 +1,125 @@
+import sqlite3
+from flask import Flask, request, jsonify, render_template_string
+
+app = Flask(__name__)
+DB_PATH = '/app/db/meteo.db'
+
+def init_db():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    # Création de la table de base si elle n'existe pas
+    c.execute('''CREATE TABLE IF NOT EXISTS mesures
+                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                  temperature REAL,
+                  humidity REAL,
+                  pressure REAL,
+                  gas_resistance REAL)''')
+    
+    # Mise à jour transparente de la base pour ajouter les colonnes BMP280
+    # Si les colonnes existent déjà, cela ignore l'erreur
+    try:
+        c.execute("ALTER TABLE mesures ADD COLUMN temp_bmp REAL")
+        c.execute("ALTER TABLE mesures ADD COLUMN pressure_bmp REAL")
+    except sqlite3.OperationalError:
+        pass # Les colonnes existent déjà
+        
+    conn.commit()
+    conn.close()
+
+init_db()
+
+def evaluate_iaq(gas_res):
+    if gas_res == "--": return "En attente...", "#6c757d"
+    try:
+        res = float(gas_res)
+        if res > 50: return "Excellente", "#28a745"
+        elif res > 20: return "Bonne", "#17a2b8"
+        elif res > 10: return "Moyenne", "#ffc107"
+        else: return "Mauvaise", "#dc3545"
+    except (ValueError, TypeError):
+        return "Erreur", "#6c757d"
+
+@app.route('/update', methods=['POST'])
+def update_data():
+    if request.is_json:
+        try:
+            data = request.get_json()
+            if all(k in data for k in ("temperature", "humidity", "pressure", "gas_resistance", "temp_bmp", "pressure_bmp")):
+                conn = sqlite3.connect(DB_PATH)
+                c = conn.cursor()
+                c.execute('''INSERT INTO mesures 
+                             (temperature, humidity, pressure, gas_resistance, temp_bmp, pressure_bmp) 
+                             VALUES (?, ?, ?, ?, ?, ?)''',
+                          (data['temperature'], data['humidity'], data['pressure'], data['gas_resistance'], data['temp_bmp'], data['pressure_bmp']))
+                conn.commit()
+                conn.close()
+                return jsonify({"status": "success"}), 200
+            else:
+                return jsonify({"status": "missing keys"}), 400
+        except Exception as e:
+            print(f"Erreur serveur: {e}")
+            return jsonify({"status": "server error"}), 500
+    return jsonify({"status": "bad request"}), 400
+
+@app.route('/')
+def index():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    # On sélectionne désormais toutes les colonnes
+    c.execute("SELECT temperature, humidity, pressure, gas_resistance, temp_bmp, pressure_bmp FROM mesures ORDER BY timestamp DESC LIMIT 1")
+    row = c.fetchone()
+    conn.close()
+
+    if row:
+        d = {
+            "temperature": row[0], "humidity": row[1], "pressure": row[2], "gas_resistance": row[3],
+            "temp_bmp": row[4] if row[4] is not None else "--",
+            "pressure_bmp": row[5] if row[5] is not None else "--"
+        }
+    else:
+        d = {"temperature": "--", "humidity": "--", "pressure": "--", "gas_resistance": "--", "temp_bmp": "--", "pressure_bmp": "--"}
+        
+    iaq_text, iaq_color = evaluate_iaq(d["gas_resistance"])
+    
+    html_template = """
+    <!DOCTYPE html>
+    <html lang="fr">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Station Météo Double Capteur</title>
+        <style>
+            body { font-family: 'Segoe UI', Tahoma, sans-serif; text-align: center; margin-top: 50px; background-color: #e9ecef; }
+            .container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
+            .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); text-align: left; min-width: 300px; }
+            h2 { color: #343a40; text-align: center; border-bottom: 2px solid #dee2e6; padding-bottom: 10px; font-size: 1.5em; }
+            p { font-size: 1.2em; color: #495057; margin: 15px 0; }
+            .badge { color: white; padding: 5px 12px; border-radius: 20px; font-weight: bold; font-size: 0.9em; }
+            .title-main { color: #343a40; margin-bottom: 30px; }
+        </style>
+    </head>
+    <body>
+        <h1 class="title-main">Tableau de bord Environnemental</h1>
+        <div class="container">
+            <!-- Bloc BME680 -->
+            <div class="card">
+                <h2>Capteur Principal (BME680)</h2>
+                <p>🌡️ Température : <strong>{{ d.temperature }} °C</strong></p>
+                <p>💧 Humidité : <strong>{{ d.humidity }} %</strong></p>
+                <p>⏱️ Pression : <strong>{{ d.pressure }} hPa</strong></p>
+                <hr>
+                <p>🌬️ Qualité de l'air : <span class="badge" style="background-color: {{ color }};">{{ text }}</span></p>
+            </div>
+            
+            <!-- Bloc BMP280 -->
+            <div class="card">
+                <h2>Capteur Secondaire (BMP280)</h2>
+                <p>🌡️ Température : <strong>{{ d.temp_bmp }} °C</strong></p>
+                <p>⏱️ Pression : <strong>{{ d.pressure_bmp }} hPa</strong></p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    return render_template_string(html_template, d=d, text=iaq_text, color=iaq_color)

@@ -1,0 +1,77 @@
+from flask import Flask, request, jsonify, render_template_string
+
+app = Flask(__name__)
+
+# Stockage temporaire en mémoire
+latest_data = {
+    "temperature": "--",
+    "humidity": "--",
+    "pressure": "--",
+    "gas_resistance": "--"
+}
+
+# Fonction pour interpréter la résistance des gaz (approximations pour l'intérieur)
+def evaluate_iaq(gas_res):
+    if gas_res == "--":
+        return "En attente...", "#6c757d" # Gris
+    
+    try:
+        res = float(gas_res)
+        # Seuils indicatifs en kOhms
+        if res > 50:
+            return "Excellente", "#28a745" # Vert
+        elif res > 20:
+            return "Bonne", "#17a2b8"      # Bleu
+        elif res > 10:
+            return "Moyenne", "#ffc107"    # Jaune
+        else:
+            return "Mauvaise", "#dc3545"   # Rouge
+    except ValueError:
+        return "Erreur", "#6c757d"
+
+@app.route('/update', methods=['POST'])
+def update_data():
+    global latest_data
+    if request.is_json:
+        latest_data = request.get_json()
+        return jsonify({"status": "success"}), 200
+    return jsonify({"status": "bad request"}), 400
+
+@app.route('/')
+def index():
+    # Évaluation de la qualité de l'air
+    iaq_text, iaq_color = evaluate_iaq(latest_data.get("gas_resistance", "--"))
+    
+    html_template = """
+    <!DOCTYPE html>
+    <html lang="fr">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Station Météo & Qualité de l'Air</title>
+        <style>
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; margin-top: 50px; background-color: #e9ecef; }
+            .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); display: inline-block; text-align: left;}
+            h1 { color: #343a40; text-align: center; border-bottom: 2px solid #dee2e6; padding-bottom: 10px; }
+            p { font-size: 1.2em; color: #495057; margin: 15px 0; }
+            .badge { color: white; padding: 5px 12px; border-radius: 20px; font-weight: bold; font-size: 0.9em; }
+            .raw-data { font-size: 0.8em; color: #adb5bd; }
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <h1>Données Environnementales</h1>
+            <p>🌡️ Température : <strong>{{ d.temperature }} °C</strong></p>
+            <p>💧 Humidité : <strong>{{ d.humidity }} %</strong></p>
+            <p>⏱️ Pression : <strong>{{ d.pressure }} hPa</strong></p>
+            <hr>
+            <p>🌬️ Qualité de l'air : <span class="badge" style="background-color: {{ color }};">{{ text }}</span></p>
+            <p class="raw-data">(Valeur brute COV : {{ d.gas_resistance }} kOhms)</p>
+        </div>
+    </body>
+    </html>
+    """
+    return render_template_string(html_template, d=latest_data, text=iaq_text, color=iaq_color)
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)

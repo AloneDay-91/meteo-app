@@ -1,0 +1,10 @@
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY app.py .
+# Le dossier db sera remplacé par le volume Podman, mais il doit exister
+RUN mkdir -p /app/db
+EXPOSE 5000
+# Commande de production : Gunicorn au lieu de Flask
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--threads", "2", "app:app"]
