@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Thermometer } from "lucide-react";
 import { SensorCard } from "@/components/SensorCard";
 import { getLatestReadings } from "@/lib/api";
 import type { LatestReadings } from "@/types";
@@ -11,12 +12,21 @@ function App() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-muted/40 p-10">
-      <h1 className="text-2xl font-semibold text-center mb-8">
-        🌡️ Tableau de Bord Environnemental
-      </h1>
+    <div className="min-h-screen bg-muted/30 px-6 py-14">
+      <header className="mx-auto mb-10 max-w-4xl text-center">
+        <div className="mb-3 inline-flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          <Thermometer className="size-6" strokeWidth={1.75} />
+        </div>
+        <h1 className="text-3xl font-semibold tracking-tight">
+          Tableau de Bord Environnemental
+        </h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Suivi en temps réel des capteurs BME680
+        </p>
+      </header>
+
       {readings && (
-        <div className="flex flex-wrap justify-center gap-5 max-w-4xl mx-auto">
+        <div className="mx-auto flex max-w-4xl flex-wrap justify-center gap-6">
           <SensorCard reading={readings.sensor1} />
           <SensorCard reading={readings.sensor2} />
         </div>
