@@ -64,7 +64,7 @@ export function SensorDetailsDialog({
 
   return (
     <Dialog>
-      <DialogTrigger render={<Button variant="secondary" size="sm" />}>Voir les détails</DialogTrigger>
+      <DialogTrigger render={<Button variant="secondary" size="lg" />}>Voir les détails</DialogTrigger>
       <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>{reading.label}</DialogTitle>
