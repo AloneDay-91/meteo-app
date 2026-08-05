@@ -1,4 +1,5 @@
 import { Thermometer, Droplets, Gauge, Wind } from "lucide-react";
+import { Line, LineChart, YAxis } from "recharts";
 import {
   Card,
   CardContent,
@@ -7,7 +8,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { SensorReading } from "@/types";
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
+import type { SensorReading, TemperaturePoint } from "@/types";
+
+const temperatureChartConfig = {
+  temperature: {
+    label: "Température",
+    color: "var(--primary)",
+  },
+} satisfies ChartConfig;
 
 function formatValue(value: number | "--", unit: string): string {
   return value === "--" ? "--" : `${value}${unit}`;
@@ -31,7 +40,13 @@ function Stat({
   );
 }
 
-export function SensorCard({ reading }: { reading: SensorReading }) {
+export function SensorCard({
+  reading,
+  history,
+}: {
+  reading: SensorReading;
+  history: TemperaturePoint[];
+}) {
   return (
     <Card className="flex-1 min-w-75 text-left transition-shadow hover:shadow-lg">
       <CardHeader>
@@ -52,6 +67,26 @@ export function SensorCard({ reading }: { reading: SensorReading }) {
           <Stat icon={Thermometer} label="Température" value={formatValue(reading.temperature, "°C")} />
           <Stat icon={Droplets} label="Humidité" value={formatValue(reading.humidity, "%")} />
           <Stat icon={Gauge} label="Pression" value={formatValue(reading.pressure, "hPa")} />
+        </div>
+
+        <div>
+          <p className="mb-1 text-xs text-muted-foreground">Température · 12 dernières heures</p>
+          <ChartContainer config={temperatureChartConfig} className="aspect-auto h-24 w-full">
+            <LineChart data={history} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
+              <YAxis domain={["dataMin - 0.5", "dataMax + 0.5"]} hide />
+              <ChartTooltip
+                cursor={false}
+                content={<ChartTooltipContent indicator="dot" labelKey="time" nameKey="temperature" />}
+              />
+              <Line
+                type="monotone"
+                dataKey="temperature"
+                stroke="var(--color-temperature)"
+                strokeWidth={2}
+                dot={false}
+              />
+            </LineChart>
+          </ChartContainer>
         </div>
 
         <div className="flex items-center justify-between border-t border-border pt-4">

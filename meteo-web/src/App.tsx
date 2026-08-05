@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
 import { Thermometer } from "lucide-react";
 import { SensorCard } from "@/components/SensorCard";
-import { getLatestReadings } from "@/lib/api";
-import type { LatestReadings } from "@/types";
+import { getLatestReadings, getTemperatureHistory } from "@/lib/api";
+import type { LatestReadings, TemperatureHistory } from "@/types";
 
 function App() {
   const [readings, setReadings] = useState<LatestReadings | null>(null);
+  const [history, setHistory] = useState<TemperatureHistory | null>(null);
 
   useEffect(() => {
     getLatestReadings().then(setReadings);
+    getTemperatureHistory().then(setHistory);
   }, []);
 
   return (
@@ -25,10 +27,10 @@ function App() {
         </p>
       </header>
 
-      {readings && (
+      {readings && history && (
         <div className="mx-auto flex max-w-4xl flex-wrap justify-center gap-6">
-          <SensorCard reading={readings.sensor1} />
-          <SensorCard reading={readings.sensor2} />
+          <SensorCard reading={readings.sensor1} history={history.sensor1} />
+          <SensorCard reading={readings.sensor2} history={history.sensor2} />
         </div>
       )}
     </div>
