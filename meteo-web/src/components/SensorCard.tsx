@@ -1,5 +1,5 @@
-import { Thermometer, Droplets, Gauge, Wind } from "lucide-react";
-import { Line, LineChart, YAxis } from "recharts";
+import { Thermometer, Droplets, Gauge, Wind, type LucideIcon } from "lucide-react";
+import { Line, LineChart, XAxis, YAxis } from "recharts";
 import {
   Card,
   CardContent,
@@ -19,7 +19,11 @@ const temperatureChartConfig = {
 } satisfies ChartConfig;
 
 function formatValue(value: number | "--", unit: string): string {
-  return value === "--" ? "--" : `${value}${unit}`;
+  return value === "--" ? "--" : `${value} ${unit}`;
+}
+
+function iaqTextClass(color: string): string {
+  return color === "#ffc107" ? "text-black" : "text-white";
 }
 
 function Stat({
@@ -27,7 +31,7 @@ function Stat({
   label,
   value,
 }: {
-  icon: typeof Thermometer;
+  icon: LucideIcon;
   label: string;
   value: string;
 }) {
@@ -73,10 +77,11 @@ export function SensorCard({
           <p className="mb-1 text-xs text-muted-foreground">Température · 12 dernières heures</p>
           <ChartContainer config={temperatureChartConfig} className="aspect-auto h-24 w-full">
             <LineChart data={history} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
+              <XAxis dataKey="time" hide />
               <YAxis domain={["dataMin - 0.5", "dataMax + 0.5"]} hide />
               <ChartTooltip
                 cursor={false}
-                content={<ChartTooltipContent indicator="dot" labelKey="time" nameKey="temperature" />}
+                content={<ChartTooltipContent indicator="dot" nameKey="temperature" />}
               />
               <Line
                 type="monotone"
@@ -94,12 +99,12 @@ export function SensorCard({
             <Wind className="size-4" strokeWidth={1.75} />
             Qualité de l'air
           </span>
-          <Badge style={{ backgroundColor: reading.iaq_color }} className="text-white">
+          <Badge style={{ backgroundColor: reading.iaq_color }} className={iaqTextClass(reading.iaq_color)}>
             {reading.iaq_text}
           </Badge>
         </div>
         <p className="text-xs text-muted-foreground">
-          Valeur brute : {formatValue(reading.gas_resistance, " kOhms")}
+          Valeur brute : {formatValue(reading.gas_resistance, "kOhms")}
         </p>
       </CardContent>
     </Card>

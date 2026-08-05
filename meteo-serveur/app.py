@@ -34,7 +34,7 @@ def evaluate_iaq(gas_res):
         elif res > 20: return "Bonne", "#17a2b8"    # Bleu
         elif res > 10: return "Moyenne", "#ffc107"  # Jaune
         else: return "Mauvaise", "#dc3545"          # Rouge
-    except ValueError:
+    except (ValueError, TypeError):
         return "Erreur", "#6c757d"
 
 def get_latest_readings():

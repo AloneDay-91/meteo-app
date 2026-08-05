@@ -7,10 +7,15 @@ import type { LatestReadings, TemperatureHistory } from "@/types";
 function App() {
   const [readings, setReadings] = useState<LatestReadings | null>(null);
   const [history, setHistory] = useState<TemperatureHistory | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getLatestReadings().then(setReadings);
-    getTemperatureHistory().then(setHistory);
+    getLatestReadings()
+      .then(setReadings)
+      .catch(() => setError("Impossible de charger les données des capteurs."));
+    getTemperatureHistory()
+      .then(setHistory)
+      .catch(() => setError("Impossible de charger l'historique des températures."));
   }, []);
 
   return (
@@ -27,7 +32,11 @@ function App() {
         </p>
       </header>
 
-      {readings && history && (
+      {error && (
+        <p className="mx-auto max-w-4xl text-center text-sm text-destructive">{error}</p>
+      )}
+
+      {!error && readings && history && (
         <div className="mx-auto flex max-w-4xl flex-wrap justify-center gap-6">
           <SensorCard reading={readings.sensor1} history={history.sensor1} />
           <SensorCard reading={readings.sensor2} history={history.sensor2} />
