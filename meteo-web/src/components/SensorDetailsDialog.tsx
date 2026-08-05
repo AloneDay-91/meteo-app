@@ -12,24 +12,37 @@ import { DataTable } from "@/components/DataTable";
 import type { SensorMetrics, SensorReading } from "@/types";
 
 export interface SensorHistoryRow extends SensorMetrics {
-  date: string;
+  timestamp: string;
 }
 
-function formatDate(date: string): string {
-  return new Date(date).toLocaleDateString("fr-FR", {
+function formatDate(timestamp: string): string {
+  return new Date(timestamp).toLocaleDateString("fr-FR", {
     day: "numeric",
     month: "long",
     year: "numeric",
   });
 }
 
+function formatTime(timestamp: string): string {
+  return new Date(timestamp).toLocaleTimeString("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 const columns: ColumnDef<SensorHistoryRow>[] = [
   {
-    accessorKey: "date",
+    id: "date",
+    accessorKey: "timestamp",
     header: "Date",
-    cell: ({ row }) => formatDate(row.original.date),
+    cell: ({ row }) => formatDate(row.original.timestamp),
     filterFn: (row, _columnId, filterValue: string) =>
-      formatDate(row.original.date).toLowerCase().includes(filterValue.toLowerCase()),
+      formatDate(row.original.timestamp).toLowerCase().includes(filterValue.toLowerCase()),
+  },
+  {
+    id: "time",
+    header: "Heure",
+    cell: ({ row }) => formatTime(row.original.timestamp),
   },
   {
     accessorKey: "temperature",

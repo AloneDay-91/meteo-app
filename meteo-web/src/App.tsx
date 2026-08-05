@@ -1,23 +1,33 @@
-import { useEffect, useState } from "react";
-import { Thermometer } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { RefreshCw, Thermometer } from "lucide-react";
 import { SensorCard } from "@/components/SensorCard";
 import { TemperatureHistoryChart } from "@/components/TemperatureHistoryChart";
-import { getLatestReadings, getSensorHistory } from "@/lib/api";
-import type { LatestReadings, SensorHistory } from "@/types";
+import { Button } from "@/components/ui/button";
+import { getLatestReadings, getMeasurements } from "@/lib/api";
+import { useAutoRefresh } from "@/lib/useAutoRefresh";
+import type { LatestReadings, Measurements } from "@/types";
+
+const REFRESH_INTERVAL_SECONDS = 60;
 
 function App() {
   const [readings, setReadings] = useState<LatestReadings | null>(null);
-  const [history, setHistory] = useState<SensorHistory | null>(null);
+  const [measurements, setMeasurements] = useState<Measurements | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const loadData = useCallback(() => {
     getLatestReadings()
       .then(setReadings)
       .catch(() => setError("Impossible de charger les données des capteurs."));
-    getSensorHistory()
-      .then(setHistory)
-      .catch(() => setError("Impossible de charger l'historique des capteurs."));
+    getMeasurements()
+      .then(setMeasurements)
+      .catch(() => setError("Impossible de charger les mesures des capteurs."));
   }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const { secondsLeft, refreshNow } = useAutoRefresh(REFRESH_INTERVAL_SECONDS, loadData);
 
   return (
     <div className="min-h-screen bg-muted/30 px-6 py-14">
@@ -31,25 +41,34 @@ function App() {
         <p className="mt-2 text-sm text-muted-foreground">
           Suivi en temps réel des capteurs BME680
         </p>
+        <div className="mt-4 flex items-center justify-center gap-3">
+          <Button variant="outline" size="sm" onClick={refreshNow}>
+            <RefreshCw className="size-4" strokeWidth={1.75} />
+            Actualiser
+          </Button>
+          <span className="text-xs text-muted-foreground tabular-nums">
+            Prochaine actualisation dans {secondsLeft}s
+          </span>
+        </div>
       </header>
 
       {error && (
         <p className="mx-auto max-w-4xl text-center text-sm text-destructive">{error}</p>
       )}
 
-      {!error && readings && history && (
+      {!error && readings && measurements && (
         <div className="mx-auto flex max-w-4xl flex-col gap-6">
           <div className="flex flex-wrap justify-center gap-6">
             <SensorCard
               reading={readings.sensor1}
-              history={history.map((p) => ({ date: p.date, ...p.sensor1 }))}
+              history={measurements.map((m) => ({ timestamp: m.timestamp, ...m.sensor1 }))}
             />
             <SensorCard
               reading={readings.sensor2}
-              history={history.map((p) => ({ date: p.date, ...p.sensor2 }))}
+              history={measurements.map((m) => ({ timestamp: m.timestamp, ...m.sensor2 }))}
             />
           </div>
-          <TemperatureHistoryChart history={history} />
+          <TemperatureHistoryChart measurements={measurements} />
         </div>
       )}
     </div>

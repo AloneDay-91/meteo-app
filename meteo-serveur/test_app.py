@@ -96,3 +96,44 @@ def test_api_history_groups_and_averages_by_day(client):
             "sensor2": {"temperature": 20.9, "humidity": 47.8, "pressure": 1012.8, "gas_resistance": 38.1},
         },
     ]
+
+
+def test_api_measures_returns_empty_list_when_db_empty(client):
+    test_client, _ = client
+    response = test_client.get("/api/measures")
+    assert response.status_code == 200
+    assert response.get_json() == []
+
+
+def test_api_measures_returns_every_reading_in_chronological_order(client):
+    test_client, app_module = client
+    conn = sqlite3.connect(app_module.DB_PATH)
+    c = conn.cursor()
+    c.executemany(
+        """INSERT INTO mesures
+           (timestamp, temperature, humidity, pressure, gas_resistance,
+            temp_2, humidity_2, pressure_2, gas_resistance_2)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        [
+            ("2026-08-04 08:00:00", 20.0, 44.0, 1012.0, 50.0, 19.0, 46.0, 1011.0, 36.0),
+            ("2026-08-04 08:10:00", 22.0, 46.0, 1014.0, 54.0, 21.0, 48.0, 1013.0, 40.0),
+        ],
+    )
+    conn.commit()
+    conn.close()
+
+    response = test_client.get("/api/measures")
+    data = response.get_json()
+
+    assert data == [
+        {
+            "timestamp": "2026-08-04 08:00:00",
+            "sensor1": {"temperature": 20.0, "humidity": 44.0, "pressure": 1012.0, "gas_resistance": 50.0},
+            "sensor2": {"temperature": 19.0, "humidity": 46.0, "pressure": 1011.0, "gas_resistance": 36.0},
+        },
+        {
+            "timestamp": "2026-08-04 08:10:00",
+            "sensor1": {"temperature": 22.0, "humidity": 46.0, "pressure": 1014.0, "gas_resistance": 54.0},
+            "sensor2": {"temperature": 21.0, "humidity": 48.0, "pressure": 1013.0, "gas_resistance": 40.0},
+        },
+    ]

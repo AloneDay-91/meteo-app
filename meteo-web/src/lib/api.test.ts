@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { getLatestReadings, getSensorHistory } from "./api";
-import type { LatestReadings, SensorHistory } from "../types";
+import { getLatestReadings, getMeasurements, getSensorHistory } from "./api";
+import type { LatestReadings, Measurements, SensorHistory } from "../types";
 
 const sampleReadings: LatestReadings = {
   sensor1: {
@@ -71,5 +71,27 @@ describe("getSensorHistory", () => {
   it("throws when the response is not ok", async () => {
     mockFetchOnce({}, false);
     await expect(getSensorHistory()).rejects.toThrow("GET /api/history failed: 500");
+  });
+});
+
+const sampleMeasurements: Measurements = [
+  {
+    timestamp: "2026-08-05 12:00:00",
+    sensor1: { temperature: 21.3, humidity: 45.2, pressure: 1013.1, gas_resistance: 52.3 },
+    sensor2: { temperature: 20.9, humidity: 47.8, pressure: 1012.8, gas_resistance: 38.1 },
+  },
+];
+
+describe("getMeasurements", () => {
+  it("fetches /api/measures and returns the parsed JSON", async () => {
+    mockFetchOnce(sampleMeasurements);
+    const result = await getMeasurements();
+    expect(result).toEqual(sampleMeasurements);
+    expect(fetch).toHaveBeenCalledWith("/api/measures");
+  });
+
+  it("throws when the response is not ok", async () => {
+    mockFetchOnce({}, false);
+    await expect(getMeasurements()).rejects.toThrow("GET /api/measures failed: 500");
   });
 });

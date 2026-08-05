@@ -141,6 +141,31 @@ def api_history():
     ]
     return jsonify(history)
 
+@app.route('/api/measures')
+def api_measures():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''SELECT timestamp, temperature, humidity, pressure, gas_resistance,
+                        temp_2, humidity_2, pressure_2, gas_resistance_2
+                 FROM mesures
+                 ORDER BY timestamp ASC''')
+    rows = c.fetchall()
+    conn.close()
+
+    measures = [
+        {
+            "timestamp": timestamp,
+            "sensor1": {
+                "temperature": t1, "humidity": h1, "pressure": p1, "gas_resistance": g1,
+            },
+            "sensor2": {
+                "temperature": t2, "humidity": h2, "pressure": p2, "gas_resistance": g2,
+            },
+        }
+        for timestamp, t1, h1, p1, g1, t2, h2, p2, g2 in rows
+    ]
+    return jsonify(measures)
+
 @app.route('/')
 def index():
     d, iaq_text_1, iaq_color_1, iaq_text_2, iaq_color_2 = get_latest_readings()

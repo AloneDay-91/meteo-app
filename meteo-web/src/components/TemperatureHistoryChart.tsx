@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { SensorHistory } from "@/types";
+import type { Measurements } from "@/types";
 
 const chartConfig = {
   sensor1: {
@@ -39,19 +39,26 @@ const chartConfig = {
 const RANGE_DAYS = { "7d": 7, "30d": 30, "90d": 90 } as const;
 type RangeKey = keyof typeof RANGE_DAYS;
 
-export function TemperatureHistoryChart({ history }: { history: SensorHistory }) {
-  const [range, setRange] = React.useState<RangeKey>("90d");
+export function TemperatureHistoryChart({ measurements }: { measurements: Measurements }) {
+  const [range, setRange] = React.useState<RangeKey>("7d");
 
   const temperatureSeries = React.useMemo(
     () =>
-      history.map((point) => ({
-        date: point.date,
+      measurements.map((point) => ({
+        timestamp: point.timestamp,
         sensor1: point.sensor1.temperature,
         sensor2: point.sensor2.temperature,
       })),
-    [history]
+    [measurements]
   );
-  const filteredData = temperatureSeries.slice(-RANGE_DAYS[range]);
+  const filteredData = React.useMemo(() => {
+    if (temperatureSeries.length === 0) return temperatureSeries;
+    const latest = new Date(temperatureSeries[temperatureSeries.length - 1].timestamp).getTime();
+    const rangeMs = RANGE_DAYS[range] * 24 * 60 * 60 * 1000;
+    return temperatureSeries.filter(
+      (point) => latest - new Date(point.timestamp).getTime() <= rangeMs
+    );
+  }, [temperatureSeries, range]);
 
   return (
     <Card className="w-full">
@@ -87,13 +94,18 @@ export function TemperatureHistoryChart({ history }: { history: SensorHistory })
             <CartesianGrid vertical={false} />
             <YAxis domain={["dataMin - 1", "dataMax + 1"]} hide />
             <XAxis
-              dataKey="date"
+              dataKey="timestamp"
               tickLine={false}
               axisLine={false}
               tickMargin={8}
               minTickGap={32}
               tickFormatter={(value: string) =>
-                new Date(value).toLocaleDateString("fr-FR", { month: "short", day: "numeric" })
+                new Date(value).toLocaleString("fr-FR", {
+                  month: "short",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
               }
             />
             <ChartTooltip
@@ -101,7 +113,12 @@ export function TemperatureHistoryChart({ history }: { history: SensorHistory })
               content={
                 <ChartTooltipContent
                   labelFormatter={(value) =>
-                    new Date(String(value)).toLocaleDateString("fr-FR", { month: "short", day: "numeric" })
+                    new Date(String(value)).toLocaleString("fr-FR", {
+                      day: "numeric",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
                   }
                   indicator="dot"
                 />

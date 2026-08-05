@@ -27,3 +27,11 @@ export interface DailyHistoryPoint {
 }
 
 export type SensorHistory = DailyHistoryPoint[];
+
+export interface Measurement {
+  timestamp: string;
+  sensor1: SensorMetrics;
+  sensor2: SensorMetrics;
+}
+
+export type Measurements = Measurement[];
