@@ -1,8 +1,9 @@
+import os
 import sqlite3
 from flask import Flask, request, jsonify, render_template_string
 
 app = Flask(__name__)
-DB_PATH = '/app/db/meteo.db'
+DB_PATH = os.environ.get('METEO_DB_PATH', '/app/db/meteo.db')
 
 def init_db():
     conn = sqlite3.connect(DB_PATH)
@@ -36,6 +37,28 @@ def evaluate_iaq(gas_res):
     except ValueError:
         return "Erreur", "#6c757d"
 
+def get_latest_readings():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''SELECT temperature, humidity, pressure, gas_resistance,
+                        temp_2, humidity_2, pressure_2, gas_resistance_2
+                 FROM mesures ORDER BY timestamp DESC LIMIT 1''')
+    row = c.fetchone()
+    conn.close()
+
+    if row:
+        d = {
+            "temperature": row[0], "humidity": row[1], "pressure": row[2], "gas_resistance": row[3],
+            "temp_2": row[4], "humidity_2": row[5], "pressure_2": row[6], "gas_resistance_2": row[7]
+        }
+    else:
+        d = {k: "--" for k in ["temperature", "humidity", "pressure", "gas_resistance",
+                               "temp_2", "humidity_2", "pressure_2", "gas_resistance_2"]}
+
+    iaq_text_1, iaq_color_1 = evaluate_iaq(d["gas_resistance"])
+    iaq_text_2, iaq_color_2 = evaluate_iaq(d["gas_resistance_2"])
+    return d, iaq_text_1, iaq_color_1, iaq_text_2, iaq_color_2
+
 @app.route('/update', methods=['POST'])
 def update_data():
     if request.is_json:
@@ -65,30 +88,34 @@ def update_data():
             
     return jsonify({"status": "bad request"}), 400
 
+@app.route('/api/latest')
+def api_latest():
+    d, iaq_text_1, iaq_color_1, iaq_text_2, iaq_color_2 = get_latest_readings()
+    return jsonify({
+        "sensor1": {
+            "label": "Capteur Principal (0x77)",
+            "temperature": d["temperature"],
+            "humidity": d["humidity"],
+            "pressure": d["pressure"],
+            "gas_resistance": d["gas_resistance"],
+            "iaq_text": iaq_text_1,
+            "iaq_color": iaq_color_1,
+        },
+        "sensor2": {
+            "label": "Capteur Secondaire (0x76)",
+            "temperature": d["temp_2"],
+            "humidity": d["humidity_2"],
+            "pressure": d["pressure_2"],
+            "gas_resistance": d["gas_resistance_2"],
+            "iaq_text": iaq_text_2,
+            "iaq_color": iaq_color_2,
+        }
+    })
+
 @app.route('/')
 def index():
-    # Récupération de la dernière ligne avec les 8 valeurs
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute('''SELECT temperature, humidity, pressure, gas_resistance, 
-                        temp_2, humidity_2, pressure_2, gas_resistance_2 
-                 FROM mesures ORDER BY timestamp DESC LIMIT 1''')
-    row = c.fetchone()
-    conn.close()
+    d, iaq_text_1, iaq_color_1, iaq_text_2, iaq_color_2 = get_latest_readings()
 
-    if row:
-        d = {
-            "temperature": row[0], "humidity": row[1], "pressure": row[2], "gas_resistance": row[3],
-            "temp_2": row[4], "humidity_2": row[5], "pressure_2": row[6], "gas_resistance_2": row[7]
-        }
-    else:
-        # Valeurs par défaut si la base est vide
-        d = {k: "--" for k in ["temperature", "humidity", "pressure", "gas_resistance", 
-                               "temp_2", "humidity_2", "pressure_2", "gas_resistance_2"]}
-        
-    iaq_text_1, iaq_color_1 = evaluate_iaq(d["gas_resistance"])
-    iaq_text_2, iaq_color_2 = evaluate_iaq(d["gas_resistance_2"])
-    
     html_template = """
     <!DOCTYPE html>
     <html lang="fr">
