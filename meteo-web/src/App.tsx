@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
-import { RefreshCw, Thermometer } from "lucide-react";
+import { Thermometer, WifiOff } from "lucide-react";
+import { AutoRefreshControl } from "@/components/AutoRefreshControl";
 import { SensorCard } from "@/components/SensorCard";
 import { TemperatureHistoryChart } from "@/components/TemperatureHistoryChart";
-import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getLatestReadings, getMeasurements } from "@/lib/api";
-import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import type { LatestReadings, Measurements } from "@/types";
 
-const REFRESH_INTERVAL_SECONDS = 60;
+const REFRESH_INTERVAL_SECONDS = 600;
 
 function App() {
   const [readings, setReadings] = useState<LatestReadings | null>(null);
@@ -27,8 +27,6 @@ function App() {
     loadData();
   }, [loadData]);
 
-  const { secondsLeft, refreshNow } = useAutoRefresh(REFRESH_INTERVAL_SECONDS, loadData);
-
   return (
     <div className="min-h-screen bg-muted/30 px-6 py-14">
       <header className="mx-auto mb-10 max-w-4xl text-center">
@@ -41,19 +39,15 @@ function App() {
         <p className="mt-2 text-sm text-muted-foreground">
           Suivi en temps réel des capteurs BME680
         </p>
-        <div className="mt-4 flex items-center justify-center gap-3">
-          <Button variant="outline" size="sm" onClick={refreshNow}>
-            <RefreshCw className="size-4" strokeWidth={1.75} />
-            Actualiser
-          </Button>
-          <span className="text-xs text-muted-foreground tabular-nums">
-            Prochaine actualisation dans {secondsLeft}s
-          </span>
-        </div>
+        <AutoRefreshControl intervalSeconds={REFRESH_INTERVAL_SECONDS} onRefresh={loadData} />
       </header>
 
       {error && (
-        <p className="mx-auto max-w-4xl text-center text-sm text-destructive">{error}</p>
+        <Alert className="mx-auto mb-6 max-w-4xl">
+          <WifiOff />
+          <AlertTitle>Connexion impossible</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
       {!error && readings && measurements && (

@@ -9,25 +9,11 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { DataTable } from "@/components/DataTable";
+import { formatParisDate, formatParisTime } from "@/lib/format";
 import type { SensorMetrics, SensorReading } from "@/types";
 
 export interface SensorHistoryRow extends SensorMetrics {
   timestamp: string;
-}
-
-function formatDate(timestamp: string): string {
-  return new Date(timestamp).toLocaleDateString("fr-FR", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-}
-
-function formatTime(timestamp: string): string {
-  return new Date(timestamp).toLocaleTimeString("fr-FR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
 
 const columns: ColumnDef<SensorHistoryRow>[] = [
@@ -35,14 +21,14 @@ const columns: ColumnDef<SensorHistoryRow>[] = [
     id: "date",
     accessorKey: "timestamp",
     header: "Date",
-    cell: ({ row }) => formatDate(row.original.timestamp),
+    cell: ({ row }) => formatParisDate(row.original.timestamp),
     filterFn: (row, _columnId, filterValue: string) =>
-      formatDate(row.original.timestamp).toLowerCase().includes(filterValue.toLowerCase()),
+      formatParisDate(row.original.timestamp).toLowerCase().includes(filterValue.toLowerCase()),
   },
   {
     id: "time",
     header: "Heure",
-    cell: ({ row }) => formatTime(row.original.timestamp),
+    cell: ({ row }) => formatParisTime(row.original.timestamp),
   },
   {
     accessorKey: "temperature",

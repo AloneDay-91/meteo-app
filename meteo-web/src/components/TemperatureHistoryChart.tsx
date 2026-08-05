@@ -23,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { parseUtcTimestamp } from "@/lib/format";
 import type { Measurements } from "@/types";
 
 const chartConfig = {
@@ -53,10 +54,12 @@ export function TemperatureHistoryChart({ measurements }: { measurements: Measur
   );
   const filteredData = React.useMemo(() => {
     if (temperatureSeries.length === 0) return temperatureSeries;
-    const latest = new Date(temperatureSeries[temperatureSeries.length - 1].timestamp).getTime();
+    const latest = parseUtcTimestamp(
+      temperatureSeries[temperatureSeries.length - 1].timestamp
+    ).getTime();
     const rangeMs = RANGE_DAYS[range] * 24 * 60 * 60 * 1000;
     return temperatureSeries.filter(
-      (point) => latest - new Date(point.timestamp).getTime() <= rangeMs
+      (point) => latest - parseUtcTimestamp(point.timestamp).getTime() <= rangeMs
     );
   }, [temperatureSeries, range]);
 
@@ -100,11 +103,12 @@ export function TemperatureHistoryChart({ measurements }: { measurements: Measur
               tickMargin={8}
               minTickGap={32}
               tickFormatter={(value: string) =>
-                new Date(value).toLocaleString("fr-FR", {
+                parseUtcTimestamp(value).toLocaleString("fr-FR", {
                   month: "short",
                   day: "numeric",
                   hour: "2-digit",
                   minute: "2-digit",
+                  timeZone: "Europe/Paris",
                 })
               }
             />
@@ -113,11 +117,12 @@ export function TemperatureHistoryChart({ measurements }: { measurements: Measur
               content={
                 <ChartTooltipContent
                   labelFormatter={(value) =>
-                    new Date(String(value)).toLocaleString("fr-FR", {
+                    parseUtcTimestamp(String(value)).toLocaleString("fr-FR", {
                       day: "numeric",
                       month: "short",
                       hour: "2-digit",
                       minute: "2-digit",
+                      timeZone: "Europe/Paris",
                     })
                   }
                   indicator="dot"

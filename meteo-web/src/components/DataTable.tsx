@@ -45,6 +45,7 @@ export function DataTable<TData, TValue>({
     onColumnFiltersChange: setColumnFilters,
     state: { columnFilters },
     initialState: { pagination: { pageSize } },
+    autoResetPageIndex: false,
   });
 
   const filterCol = filterColumn ? table.getColumn(filterColumn) : undefined;

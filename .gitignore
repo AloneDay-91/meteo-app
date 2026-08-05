@@ -6,3 +6,4 @@ meteo-serveur/db/*.db
 meteo-serveur/.venv/
 node_modules/
 meteo-web/dist/
+.playwright-mcp/
