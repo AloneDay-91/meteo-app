@@ -1,0 +1,17 @@
+[Unit]
+Description=Meteo Serveur (Flask API)
+After=network-online.target
+Wants=network-online.target
+
+[Container]
+Image=localhost/meteo-serveur:latest
+ContainerName=meteo-serveur
+PublishPort=5000:5000
+Volume=meteo-db.volume:/app/db
+Network=meteo.network
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target

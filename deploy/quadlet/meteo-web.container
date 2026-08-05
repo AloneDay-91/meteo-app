@@ -1,0 +1,17 @@
+[Unit]
+Description=Meteo Web (dashboard frontend)
+After=meteo-serveur.service network-online.target
+Wants=network-online.target
+Requires=meteo-serveur.service
+
+[Container]
+Image=localhost/meteo-web:latest
+ContainerName=meteo-web
+PublishPort=8080:80
+Network=meteo.network
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target

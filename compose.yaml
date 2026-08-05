@@ -1,0 +1,23 @@
+services:
+  meteo-serveur:
+    build:
+      context: ./meteo-serveur
+    container_name: meteo-serveur
+    restart: always
+    ports:
+      - "5000:5000"
+    volumes:
+      - meteo-db:/app/db
+
+  meteo-web:
+    build:
+      context: ./meteo-web
+    container_name: meteo-web
+    restart: always
+    ports:
+      - "8080:80"
+    depends_on:
+      - meteo-serveur
+
+volumes:
+  meteo-db:
