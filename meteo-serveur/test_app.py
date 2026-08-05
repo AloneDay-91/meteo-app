@@ -53,3 +53,46 @@ def test_api_latest_returns_latest_measurement(client):
     assert data["sensor2"]["gas_resistance"] == 38.1
     assert data["sensor2"]["iaq_text"] == "Bonne"
     assert data["sensor2"]["iaq_color"] == "#17a2b8"
+
+
+def test_api_history_returns_empty_list_when_db_empty(client):
+    test_client, _ = client
+    response = test_client.get("/api/history")
+    assert response.status_code == 200
+    assert response.get_json() == []
+
+
+def test_api_history_groups_and_averages_by_day(client):
+    test_client, app_module = client
+    conn = sqlite3.connect(app_module.DB_PATH)
+    c = conn.cursor()
+    # Two readings on the same day (should be averaged) and one on the next day.
+    c.executemany(
+        """INSERT INTO mesures
+           (timestamp, temperature, humidity, pressure, gas_resistance,
+            temp_2, humidity_2, pressure_2, gas_resistance_2)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        [
+            ("2026-08-04 08:00:00", 20.0, 44.0, 1012.0, 50.0, 19.0, 46.0, 1011.0, 36.0),
+            ("2026-08-04 20:00:00", 22.0, 46.0, 1014.0, 54.0, 21.0, 48.0, 1013.0, 40.0),
+            ("2026-08-05 12:00:00", 21.3, 45.2, 1013.1, 52.3, 20.9, 47.8, 1012.8, 38.1),
+        ],
+    )
+    conn.commit()
+    conn.close()
+
+    response = test_client.get("/api/history")
+    data = response.get_json()
+
+    assert data == [
+        {
+            "date": "2026-08-04",
+            "sensor1": {"temperature": 21.0, "humidity": 45.0, "pressure": 1013.0, "gas_resistance": 52.0},
+            "sensor2": {"temperature": 20.0, "humidity": 47.0, "pressure": 1012.0, "gas_resistance": 38.0},
+        },
+        {
+            "date": "2026-08-05",
+            "sensor1": {"temperature": 21.3, "humidity": 45.2, "pressure": 1013.1, "gas_resistance": 52.3},
+            "sensor2": {"temperature": 20.9, "humidity": 47.8, "pressure": 1012.8, "gas_resistance": 38.1},
+        },
+    ]

@@ -112,6 +112,35 @@ def api_latest():
         }
     })
 
+@app.route('/api/history')
+def api_history():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''SELECT date(timestamp) AS day,
+                        ROUND(AVG(temperature), 1), ROUND(AVG(humidity), 1),
+                        ROUND(AVG(pressure), 1), ROUND(AVG(gas_resistance), 1),
+                        ROUND(AVG(temp_2), 1), ROUND(AVG(humidity_2), 1),
+                        ROUND(AVG(pressure_2), 1), ROUND(AVG(gas_resistance_2), 1)
+                 FROM mesures
+                 GROUP BY day
+                 ORDER BY day''')
+    rows = c.fetchall()
+    conn.close()
+
+    history = [
+        {
+            "date": day,
+            "sensor1": {
+                "temperature": t1, "humidity": h1, "pressure": p1, "gas_resistance": g1,
+            },
+            "sensor2": {
+                "temperature": t2, "humidity": h2, "pressure": p2, "gas_resistance": g2,
+            },
+        }
+        for day, t1, h1, p1, g1, t2, h2, p2, g2 in rows
+    ]
+    return jsonify(history)
+
 @app.route('/')
 def index():
     d, iaq_text_1, iaq_color_1, iaq_text_2, iaq_color_2 = get_latest_readings()
