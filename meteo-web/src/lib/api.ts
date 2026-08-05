@@ -1,5 +1,5 @@
-import type { LatestReadings, TemperatureHistory } from "../types";
-import { mockLatestReadings, mockTemperatureHistory } from "./mockData";
+import type { LatestReadings, SensorHistory } from "../types";
+import { mockLatestReadings, mockSensorHistory } from "./mockData";
 
 // Mocked locally — no real sensors reachable in dev yet.
 // To switch to the real backend once available, replace the body below with:
@@ -11,7 +11,7 @@ export async function getLatestReadings(): Promise<LatestReadings> {
 }
 
 // Mocked locally — there is no backend endpoint for historical readings yet.
-export async function getTemperatureHistory(): Promise<TemperatureHistory> {
+export async function getSensorHistory(): Promise<SensorHistory> {
   await new Promise((resolve) => setTimeout(resolve, 150));
-  return mockTemperatureHistory;
+  return mockSensorHistory;
 }

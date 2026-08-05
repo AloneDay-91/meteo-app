@@ -13,10 +13,17 @@ export interface LatestReadings {
   sensor2: SensorReading;
 }
 
-export interface TemperatureHistoryPoint {
-  date: string;
-  sensor1: number;
-  sensor2: number;
+export interface SensorMetrics {
+  temperature: number;
+  humidity: number;
+  pressure: number;
+  gas_resistance: number;
 }
 
-export type TemperatureHistory = TemperatureHistoryPoint[];
+export interface DailyHistoryPoint {
+  date: string;
+  sensor1: SensorMetrics;
+  sensor2: SensorMetrics;
+}
+
+export type SensorHistory = DailyHistoryPoint[];

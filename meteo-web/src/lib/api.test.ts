@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { getLatestReadings, getTemperatureHistory } from "./api";
-import { mockLatestReadings, mockTemperatureHistory } from "./mockData";
+import { getLatestReadings, getSensorHistory } from "./api";
+import { mockLatestReadings, mockSensorHistory } from "./mockData";
 
 describe("getLatestReadings", () => {
   it("resolves with the mock readings", async () => {
@@ -9,9 +9,9 @@ describe("getLatestReadings", () => {
   });
 });
 
-describe("getTemperatureHistory", () => {
-  it("resolves with the mock temperature history", async () => {
-    const result = await getTemperatureHistory();
-    expect(result).toEqual(mockTemperatureHistory);
+describe("getSensorHistory", () => {
+  it("resolves with the mock sensor history", async () => {
+    const result = await getSensorHistory();
+    expect(result).toEqual(mockSensorHistory);
   });
 });

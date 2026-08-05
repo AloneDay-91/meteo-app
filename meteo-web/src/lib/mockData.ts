@@ -1,4 +1,4 @@
-import type { LatestReadings, TemperatureHistory } from "../types";
+import type { LatestReadings, SensorHistory, SensorMetrics, SensorReading } from "../types";
 
 export const mockLatestReadings: LatestReadings = {
   sensor1: {
@@ -36,63 +36,101 @@ function mulberry32(seed: number) {
 
 function requireNumber(value: number | "--"): number {
   if (value === "--") {
-    throw new Error("mockLatestReadings must have numeric temperature values");
+    throw new Error("mockLatestReadings must have numeric values");
   }
   return value;
 }
 
-function generateDailyHistory(days: number): TemperatureHistory {
+function requireMetrics(reading: SensorReading): SensorMetrics {
+  return {
+    temperature: requireNumber(reading.temperature),
+    humidity: requireNumber(reading.humidity),
+    pressure: requireNumber(reading.pressure),
+    gas_resistance: requireNumber(reading.gas_resistance),
+  };
+}
+
+function round(value: number, decimals: number): number {
+  const factor = 10 ** decimals;
+  return Math.round(value * factor) / factor;
+}
+
+interface SeriesConfig {
+  base: number;
+  seasonalAmplitude: number;
+  walkStep: number;
+  decimals: number;
+}
+
+const METRIC_CONFIG: Record<keyof SensorMetrics, SeriesConfig> = {
+  temperature: { base: 15, seasonalAmplitude: 4, walkStep: 1.2, decimals: 1 },
+  humidity: { base: 55, seasonalAmplitude: -10, walkStep: 2.5, decimals: 1 },
+  pressure: { base: 1010, seasonalAmplitude: 3, walkStep: 1.5, decimals: 1 },
+  gas_resistance: { base: 30, seasonalAmplitude: 8, walkStep: 4, decimals: 1 },
+};
+
+// Smooth seasonal drift plus a small day-to-day random walk, so the series
+// looks like real weather, then ramped over the last two weeks toward
+// `target` so it ends exactly at the current mockLatestReadings value
+// without a jarring one-day spike.
+function generateSeries(days: number, random: () => number, config: SeriesConfig, target: number): number[] {
+  const values: number[] = [];
+  let walk = random() * 3;
+
+  for (let i = days - 1; i >= 0; i--) {
+    const seasonal = Math.sin(((days - i) / days) * Math.PI) * config.seasonalAmplitude;
+    walk += (random() - 0.5) * config.walkStep;
+    values.push(round(config.base + seasonal + walk * 0.1, config.decimals));
+  }
+
+  const rampDays = Math.min(14, values.length);
+  const startIndex = values.length - rampDays;
+  const offset = target - values[values.length - 1];
+  for (let i = startIndex; i < values.length; i++) {
+    const blend = (i - startIndex + 1) / rampDays;
+    values[i] = round(values[i] + offset * blend, config.decimals);
+  }
+  values[values.length - 1] = target;
+
+  return values;
+}
+
+function generateSensorSeries(days: number, random: () => number, target: SensorMetrics): SensorMetrics[] {
+  const temperature = generateSeries(days, random, METRIC_CONFIG.temperature, target.temperature);
+  const humidity = generateSeries(days, random, METRIC_CONFIG.humidity, target.humidity);
+  const pressure = generateSeries(days, random, METRIC_CONFIG.pressure, target.pressure);
+  const gasResistance = generateSeries(days, random, METRIC_CONFIG.gas_resistance, target.gas_resistance);
+
+  return Array.from({ length: days }, (_, i) => ({
+    temperature: temperature[i],
+    humidity: humidity[i],
+    pressure: pressure[i],
+    gas_resistance: gasResistance[i],
+  }));
+}
+
+function generateDailyHistory(days: number): SensorHistory {
   const random = mulberry32(42);
-  const points: TemperatureHistory = [];
   const today = new Date();
 
-  let sensor1 = 15 + random() * 3;
-  let sensor2 = sensor1 - 0.5;
+  const sensor1Series = generateSensorSeries(days, random, requireMetrics(mockLatestReadings.sensor1));
+  const sensor2Series = generateSensorSeries(days, random, requireMetrics(mockLatestReadings.sensor2));
 
+  const points: SensorHistory = [];
   for (let i = days - 1; i >= 0; i--) {
     const date = new Date(today);
     date.setDate(date.getDate() - i);
-
-    // Smooth seasonal drift (warmer toward the middle of the window) plus a
-    // small day-to-day random walk, so the chart looks like real weather.
-    const seasonal = Math.sin(((days - i) / days) * Math.PI) * 4;
-    sensor1 += (random() - 0.5) * 1.2;
-    sensor2 += (random() - 0.5) * 1.2;
-
+    const index = days - 1 - i;
     points.push({
       date: date.toISOString().slice(0, 10),
-      sensor1: Math.round((15 + seasonal + sensor1 * 0.1) * 10) / 10,
-      sensor2: Math.round((14.5 + seasonal + sensor2 * 0.1) * 10) / 10,
+      sensor1: sensor1Series[index],
+      sensor2: sensor2Series[index],
     });
   }
-
-  // Smoothly ramp the last two weeks toward the current mockLatestReadings
-  // values, so the chart's endpoint matches the sensor cards above it
-  // without a jarring one-day spike.
-  const rampDays = Math.min(14, points.length);
-  const targetSensor1 = requireNumber(mockLatestReadings.sensor1.temperature);
-  const targetSensor2 = requireNumber(mockLatestReadings.sensor2.temperature);
-  const startIndex = points.length - rampDays;
-  const offsetSensor1 = targetSensor1 - points[points.length - 1].sensor1;
-  const offsetSensor2 = targetSensor2 - points[points.length - 1].sensor2;
-
-  for (let i = startIndex; i < points.length; i++) {
-    const blend = (i - startIndex + 1) / rampDays;
-    points[i] = {
-      date: points[i].date,
-      sensor1: Math.round((points[i].sensor1 + offsetSensor1 * blend) * 10) / 10,
-      sensor2: Math.round((points[i].sensor2 + offsetSensor2 * blend) * 10) / 10,
-    };
-  }
-  points[points.length - 1] = {
-    date: points[points.length - 1].date,
-    sensor1: targetSensor1,
-    sensor2: targetSensor2,
-  };
 
   return points;
 }
 
-// ~90 days of daily mock history, ending today at the current
-// mockLatestReadings values.
-export const mockTemperatureHistory: TemperatureHistory = generateDailyHistory(90);
+// ~90 days of daily mock history (all metrics per sensor), ending today at
+// the current mockLatestReadings values.
+export const mockSensorHistory: SensorHistory = generateDailyHistory(90);

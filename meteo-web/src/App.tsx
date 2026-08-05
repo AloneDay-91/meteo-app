@@ -2,21 +2,21 @@ import { useEffect, useState } from "react";
 import { Thermometer } from "lucide-react";
 import { SensorCard } from "@/components/SensorCard";
 import { TemperatureHistoryChart } from "@/components/TemperatureHistoryChart";
-import { getLatestReadings, getTemperatureHistory } from "@/lib/api";
-import type { LatestReadings, TemperatureHistory } from "@/types";
+import { getLatestReadings, getSensorHistory } from "@/lib/api";
+import type { LatestReadings, SensorHistory } from "@/types";
 
 function App() {
   const [readings, setReadings] = useState<LatestReadings | null>(null);
-  const [history, setHistory] = useState<TemperatureHistory | null>(null);
+  const [history, setHistory] = useState<SensorHistory | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     getLatestReadings()
       .then(setReadings)
       .catch(() => setError("Impossible de charger les données des capteurs."));
-    getTemperatureHistory()
+    getSensorHistory()
       .then(setHistory)
-      .catch(() => setError("Impossible de charger l'historique des températures."));
+      .catch(() => setError("Impossible de charger l'historique des capteurs."));
   }, []);
 
   return (
@@ -40,8 +40,14 @@ function App() {
       {!error && readings && history && (
         <div className="mx-auto flex max-w-4xl flex-col gap-6">
           <div className="flex flex-wrap justify-center gap-6">
-            <SensorCard reading={readings.sensor1} />
-            <SensorCard reading={readings.sensor2} />
+            <SensorCard
+              reading={readings.sensor1}
+              history={history.map((p) => ({ date: p.date, ...p.sensor1 }))}
+            />
+            <SensorCard
+              reading={readings.sensor2}
+              history={history.map((p) => ({ date: p.date, ...p.sensor2 }))}
+            />
           </div>
           <TemperatureHistoryChart history={history} />
         </div>

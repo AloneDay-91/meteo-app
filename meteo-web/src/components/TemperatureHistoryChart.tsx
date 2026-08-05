@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { TemperatureHistory } from "@/types";
+import type { SensorHistory } from "@/types";
 
 const chartConfig = {
   sensor1: {
@@ -39,10 +39,19 @@ const chartConfig = {
 const RANGE_DAYS = { "7d": 7, "30d": 30, "90d": 90 } as const;
 type RangeKey = keyof typeof RANGE_DAYS;
 
-export function TemperatureHistoryChart({ history }: { history: TemperatureHistory }) {
+export function TemperatureHistoryChart({ history }: { history: SensorHistory }) {
   const [range, setRange] = React.useState<RangeKey>("90d");
 
-  const filteredData = history.slice(-RANGE_DAYS[range]);
+  const temperatureSeries = React.useMemo(
+    () =>
+      history.map((point) => ({
+        date: point.date,
+        sensor1: point.sensor1.temperature,
+        sensor2: point.sensor2.temperature,
+      })),
+    [history]
+  );
+  const filteredData = temperatureSeries.slice(-RANGE_DAYS[range]);
 
   return (
     <Card className="w-full">

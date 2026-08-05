@@ -3,15 +3,14 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { SensorDetailsDialog, type SensorHistoryRow } from "@/components/SensorDetailsDialog";
+import { formatValue } from "@/lib/format";
 import type { SensorReading } from "@/types";
-
-function formatValue(value: number | "--", unit: string): string {
-  return value === "--" ? "--" : `${value} ${unit}`;
-}
 
 function iaqTextClass(color: string): string {
   return color === "#ffc107" ? "text-black" : "text-white";
@@ -35,7 +34,13 @@ function Stat({
   );
 }
 
-export function SensorCard({ reading }: { reading: SensorReading }) {
+export function SensorCard({
+  reading,
+  history,
+}: {
+  reading: SensorReading;
+  history: SensorHistoryRow[];
+}) {
   return (
     <Card className="flex-1 min-w-75 text-left">
       <CardHeader>
@@ -58,7 +63,7 @@ export function SensorCard({ reading }: { reading: SensorReading }) {
           <Stat icon={Gauge} label="Pression" value={formatValue(reading.pressure, "hPa")} />
         </div>
 
-        <div className="flex items-center justify-between border-t border-border pt-4">
+        <div className="flex items-center justify-between">
           <span className="flex items-center gap-2 text-sm text-muted-foreground">
             <Wind className="size-4" strokeWidth={1.75} />
             Qualité de l'air
@@ -71,6 +76,9 @@ export function SensorCard({ reading }: { reading: SensorReading }) {
           Valeur brute : {formatValue(reading.gas_resistance, "kOhms")}
         </p>
       </CardContent>
+      <CardFooter className="flex items-center justify-end">
+        <SensorDetailsDialog reading={reading} history={history} />
+      </CardFooter>
     </Card>
   );
 }
